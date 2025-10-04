@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "compiler.h"
 #include <stddef.h>
 
 #define BIT_0 (1 << 0)
@@ -73,3 +74,21 @@
 	})
 
 #define mhz_to_hz(mhz) ((mhz) * (1000000))
+#define khz_to_hz(khz) ((khz) * (1000))
+
+#ifndef NDEBUG
+#define app_assert(expr)		\
+	({				\
+		if (!(expr)) {		\
+			asm("bkpt");	\
+			for (;;);	\
+		}			\
+	})
+#else
+#define app_assert(expr)
+#endif // NDEBUG
+
+ALWAYS_INLINE void hal_no_op(void)
+{
+	asm("nop");
+}

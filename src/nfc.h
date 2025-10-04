@@ -21,3 +21,5 @@
 // SOFTWARE.
 
 #pragma once
+
+void nfc_init(void);

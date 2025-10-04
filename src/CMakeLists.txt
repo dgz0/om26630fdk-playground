@@ -20,8 +20,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-set(SRCS drv-clrc663.c hal.c hal-spi.c main.c startup.c)
-set(HDRS compiler.h drv-clrc663.h hal.h hal-gpio.h hal-spi.h hal-sysctl.h)
+set(SRCS
+	drv-clrc663.c
+	hal.c
+	hal-gpio.c
+	hal-pincm.c
+	hal-spi.c
+	hal-sysctl.c
+	main.c
+	nfc.c
+	startup.c)
+
+set(HDRS
+	compiler.h
+	drv-clrc663.h
+	hal.h
+	hal-gpio.h
+	hal-pincm.h
+	hal-spi.h
+	hal-sysctl.h
+	nfc.h
+)
 
 add_executable(om26630fdk-playground ${SRCS} ${HDRS})
 

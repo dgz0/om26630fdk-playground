@@ -24,6 +24,7 @@
 
 #include "types.h"
 #include "util.h"
+#include "hal-sysctl.h"
 
 #define HAL_SSP0 ((struct hal_spi_hw *const)(0x40088000))
 #define HAL_SSP1 ((struct hal_spi_hw *const)(0x40030000))
@@ -110,28 +111,34 @@ enum hal_spi_cfg_moto_spi_cpha {
 };
 
 enum hal_spi_data_size {
-	HAL_SPI_DATA_SIZE_4BIT	= 3,
-	HAL_SPI_DATA_SIZE_5BIT	= 4,
-	HAL_SPI_DATA_SIZE_6BIT	= 5,
-	HAL_SPI_DATA_SIZE_7BIT	= 6,
-	HAL_SPI_DATA_SIZE_8BIT	= 7,
-	HAL_SPI_DATA_SIZE_9BIT	= 8,
-	HAL_SPI_DATA_SIZE_10BIT	= 9,
-	HAL_SPI_DATA_SIZE_11BIT	= 10,
-	HAL_SPI_DATA_SIZE_12BIT	= 11,
-	HAL_SPI_DATA_SIZE_13BIT	= 12,
-	HAL_SPI_DATA_SIZE_14BIT	= 13,
-	HAL_SPI_DATA_SIZE_15BIT	= 14,
-	HAL_SPI_DATA_SIZE_16BIT	= 15
+	HAL_SPI_DATA_SIZE_4BIT = 3,
+	HAL_SPI_DATA_SIZE_5BIT = 4,
+	HAL_SPI_DATA_SIZE_6BIT = 5,
+	HAL_SPI_DATA_SIZE_7BIT = 6,
+	HAL_SPI_DATA_SIZE_8BIT = 7,
+	HAL_SPI_DATA_SIZE_9BIT = 8,
+	HAL_SPI_DATA_SIZE_10BIT = 9,
+	HAL_SPI_DATA_SIZE_11BIT = 10,
+	HAL_SPI_DATA_SIZE_12BIT = 11,
+	HAL_SPI_DATA_SIZE_13BIT = 12,
+	HAL_SPI_DATA_SIZE_14BIT = 13,
+	HAL_SPI_DATA_SIZE_15BIT = 14,
+	HAL_SPI_DATA_SIZE_16BIT = 15
 };
 
-struct hal_spi_cfg_moto_spi_master_three_wire {
-	u32 clk_rate;
+struct hal_spi_cfg_moto_master {
+	enum hal_sysctl_pclksel_clk clk_speed;
 	enum hal_spi_data_size data_size;
 	enum hal_spi_cfg_moto_spi_cpol cpol;
 	enum hal_spi_cfg_moto_spi_cpha cpha;
+	u8 prescaler;
+	u8 serial_clk_rate;
 };
 
-void hal_spi_init_moto_spi_master_three_wire(
-	enum hal_spi_instance inst,
-	const struct hal_spi_cfg_moto_spi_master_three_wire *cfg);
+void hal_spi_init_moto_master(enum hal_spi_instance inst,
+			      const struct hal_spi_cfg_moto_master *cfg);
+
+void hal_spi_tx_blocking(enum hal_spi_instance inst, const u16 *src, u32 size);
+
+void hal_spi_tx_rx_blocking(enum hal_spi_instance inst, const u16 *src,
+			    u16 *dst, u32 size);

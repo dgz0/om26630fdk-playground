@@ -38,6 +38,18 @@ enum cr0_frf {
 	CR0_FRF_MASK = BIT_5 | BIT_4,
 };
 
+#define SR_BIT_TFE (BIT_0)
+#define SR_BIT_TNF (BIT_1)
+#define SR_BIT_RNE (BIT_2)
+#define SR_BIT_RFF (BIT_3)
+#define SR_BIT_BSY (BIT_4)
+
+#define CR0_SCR_MASK \
+	(BIT_15 | BIT_14 | BIT_13 | BIT_12 | BIT_11 | BIT_10 | BIT_9 | BIT_8)
+
+#define CPSR_CPSDVSR_MASK \
+	(BIT_7 | BIT_6 | BIT_5 | BIT_4 | BIT_3 | BIT_2 | BIT_1 | BIT_0)
+
 static struct {
 	struct hal_spi_hw *const hw;
 	const enum hal_sysctl_pconp_bit pconp_bit;
@@ -74,30 +86,27 @@ static void isr_SSP1(void)
 static void moto_spi_cpol_mode_set(const enum hal_spi_instance inst,
 				   const enum hal_spi_cfg_moto_spi_cpol cpol)
 {
-	if (cpol == HAL_SPI_CFG_MOTO_SPI_CPOL_LOW) {
+	if (cpol == HAL_SPI_CFG_MOTO_SPI_CPOL_LOW)
 		spi_instances[inst].hw->CR0 &= ~CR0_BIT_CPOL;
-	} else if (cpol == HAL_SPI_CFG_MOTO_SPI_CPOL_HIGH) {
+	else if (cpol == HAL_SPI_CFG_MOTO_SPI_CPOL_HIGH)
 		spi_instances[inst].hw->CR0 |= CR0_BIT_CPOL;
-	} else {
+	else
 		UNREACHABLE;
-	}
 }
 
 static void moto_spi_cpha_mode_set(const enum hal_spi_instance inst,
 				   const enum hal_spi_cfg_moto_spi_cpha cpha)
 {
-	if (cpha == HAL_SPI_CFG_MOTO_SPI_CPHA_FIRST) {
+	if (cpha == HAL_SPI_CFG_MOTO_SPI_CPHA_FIRST)
 		spi_instances[inst].hw->CR0 &= ~CR0_BIT_CPHA;
-	} else if (cpha == HAL_SPI_CFG_MOTO_SPI_CPHA_SECOND) {
+	else if (cpha == HAL_SPI_CFG_MOTO_SPI_CPHA_SECOND)
 		spi_instances[inst].hw->CR0 |= CR0_BIT_CPHA;
-	} else {
+	else
 		UNREACHABLE;
-	}
 }
 
-void hal_spi_init_moto_spi_master_three_wire(
-	const enum hal_spi_instance inst,
-	const struct hal_spi_cfg_moto_spi_master_three_wire *const cfg)
+void hal_spi_init_moto_master(const enum hal_spi_instance inst,
+			      const struct hal_spi_cfg_moto_master *const cfg)
 {
 	// The two SSP interfaces, SSP0 and SSP1 are configured using the
 	// following registers:
@@ -108,14 +117,13 @@ void hal_spi_init_moto_spi_master_three_wire(
 
 	// 2. Clock: In PCLKSEL0 select PCLK_SSP1; in PCLKSEL1 select PCLK_SSP0.
 	//    In master mode, the clock must be scaled down.
-	// XXX: Determine the correct clock configuration based on the
-	;
+	set_val_by_mask(*spi_instances[inst].pclksel_reg,
+			spi_instances[inst].pclksel_mask, cfg->clk_speed);
 
 	// 3. Pins: Select the SSP pins through the PINSEL registers and pin
 	//    modes through the PINMODE registers.
 	//
 	// The application is responsible for this step.
-	;
 
 	// 4. Interrupts: Interrupts are enabled in the SSP0IMSC register for
 	//    SSP0 and SSP1IMSC register for SSP1. Interrupts are enabled in the
@@ -129,16 +137,51 @@ void hal_spi_init_moto_spi_master_three_wire(
 			cfg->data_size);
 
 	set_val_by_mask(spi_instances[inst].hw->CR0, CR0_FRF_MASK, CR0_FRF_SPI);
+	set_val_by_mask(spi_instances[inst].hw->CR0, CR0_SCR_MASK,
+			cfg->serial_clk_rate);
+
+	set_val_by_mask(spi_instances[inst].hw->CPSR, CPSR_CPSDVSR_MASK,
+			cfg->prescaler);
+
 	moto_spi_cpol_mode_set(inst, cfg->cpol);
 	moto_spi_cpha_mode_set(inst, cfg->cpha);
 
-	// serial clock rate
-
 	spi_instances[inst].hw->CR1 &= ~CR1_BIT_MS;
 
-	// 6. DMA: The Rx and Tx FIFOs of the SSP interfaces can be connected to
-	//    the GPDMA controller. For GPDMA system connections
-	;
-
 	spi_instances[inst].hw->CR1 |= CR1_BIT_SSE;
+}
+
+void hal_spi_tx_blocking(const enum hal_spi_instance inst, const u16 *const src,
+			 const u32 size)
+{
+	for (u32 i = 0; i < size; ++i) {
+		while (!(spi_instances[inst].hw->SR & SR_BIT_TNF))
+			hal_no_op();
+
+		spi_instances[inst].hw->DR = src[i];
+	}
+
+	while (spi_instances[inst].hw->SR & SR_BIT_BSY)
+		hal_no_op();
+
+	while (spi_instances[inst].hw->SR & SR_BIT_RNE)
+		spi_instances[inst].hw->DR;
+}
+
+void hal_spi_tx_rx_blocking(const enum hal_spi_instance inst, const u16 *src,
+			    u16 *const dst, const u32 size)
+{
+	for (u32 i = 0; i < size; ++i) {
+		while (!(spi_instances[inst].hw->SR & SR_BIT_TNF))
+			hal_no_op();
+
+		spi_instances[inst].hw->DR = src[i];
+	}
+
+	while (spi_instances[inst].hw->SR & SR_BIT_BSY)
+		hal_no_op();
+
+	u32 i = 0;
+	while (spi_instances[inst].hw->SR & SR_BIT_RNE)
+		dst[i++] = spi_instances[inst].hw->DR;
 }

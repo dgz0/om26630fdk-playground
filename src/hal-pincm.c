@@ -19,3 +19,20 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+#include "hal-pincm.h"
+
+#define HAL_PINCM ((struct hal_pincm *const)(0x4002C000))
+
+void hal_pincm_set_func(const enum hal_pinsel_reg reg, const u32 pinsel_mask,
+			const enum hal_pinsel_func func)
+{
+	set_val_by_mask(HAL_PINCM->PINSEL[reg], pinsel_mask, func);
+}
+
+void hal_pincm_set_resistor(const enum hal_pinmode_reg reg,
+			    const u32 pinmode_mask,
+			    const enum hal_pinmode_resistor resistor)
+{
+	set_val_by_mask(HAL_PINCM->PINMODE[reg], pinmode_mask, resistor);
+}

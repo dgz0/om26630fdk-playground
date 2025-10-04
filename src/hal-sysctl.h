@@ -22,11 +22,15 @@
 
 #pragma once
 
-#include "compiler.h"
 #include "types.h"
 #include "util.h"
 
 #define HAL_SYSCTL ((struct hal_sysctl *const)(0x400FC000))
+
+#define HAL_SYSCTL_CCLK_HZ (mhz_to_hz(96))
+#define HAL_SYSCTL_XTAL_HZ (mhz_to_hz(12))
+#define HAL_SYSCTL_IRC_HZ (mhz_to_hz(4))
+#define HAL_SYSCTL_RTC_HZ (khz_to_hz(32))
 
 enum hal_sysctl_pconp_bit {
 	// clang-format off
@@ -123,6 +127,75 @@ enum hal_sysctl_pclksel_mask {
 	HAL_SYSCTL_PCLKSEL1_MASK_PCLK_MC	= BIT_30 | BIT_31
 
 	// clang-format on
+};
+
+enum hal_sysctl_pclksel_clk {
+	HAL_SYSCTL_PCLKSEL_CCLK_DIV_4 = 0,
+	HAL_SYSCTL_PCLKSEL_CCLK_DIV_1 = 1,
+	HAL_SYSCTL_PCLKSEL_CCLK_DIV_2 = 2,
+	HAL_SYSCTL_PCLKSEL_CCLK_DIV_3 = 3
+};
+
+enum hal_sysctl_scs {
+	HAL_SYSCTL_SCS_BIT_OSCRANGE = BIT_4,
+	HAL_SYSCTL_SCS_BIT_OSCEN = BIT_5,
+	HAL_SYSCTL_SCS_BIT_OSCSTAT = BIT_6
+};
+
+enum hal_sysctl_main_osc_range {
+	HAL_SYSCTL_MAIN_OSC_RANGE_1_TO_20_MHZ = 0,
+	HAL_SYSCTL_MAIN_OSC_RANGE_15_TO_25_MHZ = 1,
+	HAL_SYSCTL_MAIN_OSC_RANGE_VALID
+};
+
+enum hal_sysctl_flash_acc_time {
+	HAL_SYSCTL_FLASH_ACC_TIME_CLK_1 = 0,
+	HAL_SYSCTL_FLASH_ACC_TIME_CLK_2 = 1,
+	HAL_SYSCTL_FLASH_ACC_TIME_CLK_3 = 2,
+	HAL_SYSCTL_FLASH_ACC_TIME_CLK_4 = 3,
+	HAL_SYSCTL_FLASH_ACC_TIME_CLK_5 = 4,
+	HAL_SYSCTL_FLASH_ACC_TIME_CLK_6 = 5
+};
+
+enum hal_sysctl_osc_src {
+	HAL_SYSCTL_OSC_IRC = 0,
+	HAL_SYSCTL_OSC_MAIN = 1,
+	HAL_SYSCTL_OSC_RTC = 2,
+	HAL_SYSCTL_OSC_NUM
+};
+
+enum hal_sysctl_clkout_clk_src {
+	HAL_SYSCTL_CLKOUT_CLK_SRC_CPU = 0,
+	HAL_SYSCTL_CLKOUT_CLK_SRC_MAIN = 1,
+	HAL_SYSCTL_CLKOUT_CLK_SRC_IRC = 2,
+	HAL_SYSCTL_CLKOUT_CLK_SRC_USB = 3,
+	HAL_SYSCTL_CLKOUT_CLK_SRC_RTC = 4
+};
+
+enum hal_sysctl_clkout_clk_div {
+	HAL_SYSCTL_CLKOUT_CLK_DIV_1 = 0,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_2 = 1,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_3 = 2,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_4 = 3,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_5 = 4,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_6 = 5,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_7 = 6,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_8 = 7,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_9 = 8,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_10 = 9,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_11 = 10,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_12 = 11,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_13 = 12,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_14 = 13,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_15 = 14,
+	HAL_SYSCTL_CLKOUT_CLK_DIV_16 = 15
+};
+
+struct hal_sysctl_pll_cfg {
+	u32 pll_mul;
+	u32 pll_div;
+	u32 osc_src;
+	u32 cclkcfg_div;
 };
 
 struct hal_sysctl_pll {
@@ -240,14 +313,14 @@ static_assert_offset(struct hal_sysctl, USBIntSt, 0x1C0);
 static_assert_offset(struct hal_sysctl, DMAREQSEL, 0x1C4);
 static_assert_offset(struct hal_sysctl, CLKOUTCFG, 0x1C8);
 
-ALWAYS_INLINE void
-hal_sysctl_periph_pwr_en(const enum hal_sysctl_pconp_bit mask)
-{
-	HAL_SYSCTL->PCONP |= mask;
-}
+void hal_sysctl_periph_pwr_en(enum hal_sysctl_pconp_bit mask);
+void hal_sysctl_periph_pwr_dis(enum hal_sysctl_pconp_bit mask);
 
-ALWAYS_INLINE void
-hal_sysctl_periph_pwr_dis(const enum hal_sysctl_pconp_bit mask)
-{
-	HAL_SYSCTL->PCONP &= ~mask;
-}
+void hal_sysctl_flash_acc_time_set(enum hal_sysctl_flash_acc_time acc_time);
+
+void hal_sysctl_main_osc_en(enum hal_sysctl_main_osc_range osc_range);
+
+void hal_sysctl_cclk_set(const struct hal_sysctl_pll_cfg *cfg);
+
+void hal_sysctl_clkout_cfg_set(enum hal_sysctl_clkout_clk_src clk_src,
+			       enum hal_sysctl_clkout_clk_div clk_div);

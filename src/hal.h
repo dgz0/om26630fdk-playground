@@ -23,3 +23,5 @@
 #pragma once
 
 void hal_init(void);
+
+void hal_process_events(void);

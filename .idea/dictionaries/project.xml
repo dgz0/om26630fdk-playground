@@ -2,14 +2,18 @@
   <dictionary name="project">
     <words>
       <w>canwakeflags</w>
+      <w>clksrcsel</w>
       <w>cpha</w>
       <w>cpol</w>
       <w>dmareqsel</w>
+      <w>fiodir</w>
       <w>pclk</w>
       <w>pclksel</w>
       <w>pconp</w>
       <w>pcssp</w>
       <w>periph</w>
+      <w>pinmode</w>
+      <w>pllclk</w>
       <w>spdx</w>
     </words>
   </dictionary>
